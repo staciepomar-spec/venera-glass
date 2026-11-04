@@ -9,6 +9,7 @@ const Color _kPureGlassLight = Color(0xB8FFFFFF);
 const Color _kPureGlassDark = Color(0xB81C1C1E);
 const Color _kPureSeparatorLight = Color(0x1F3C3C43);
 const Color _kPureSeparatorDark = Color(0x7A545458);
+const double _kPureBottomBarHeight = 58.0;
 const Duration _kPureDuration = Duration(milliseconds: 250);
 const Cubic _kPureCurve = Cubic(0.25, 0.1, 0.25, 1);
 
@@ -102,7 +103,7 @@ class NaviPaneState extends State<NaviPane>
     _naviItemTapListeners.remove(listener);
   }
 
-  static const _kBottomBarHeight = 58.0;
+  static const _kBottomBarHeight = _kPureBottomBarHeight;
 
   static const _kFoldedSideBarWidth = 72.0;
 
@@ -718,7 +719,7 @@ class _NaviMainViewState extends State<_NaviMainView> {
     // Let page content extend behind the glass bar so the blur has real pixels
     // to sample, while still reserving enough bottom inset for the last list item.
     final bottomInset = MediaQuery.of(context).padding.bottom +
-        (shouldShowAppBar ? _kBottomBarHeight + 20 : 0);
+        (shouldShowAppBar ? _kPureBottomBarHeight + 20 : 0);
     return Column(
       children: [
         if (shouldShowAppBar) state.buildTop().paddingTop(context.padding.top),
