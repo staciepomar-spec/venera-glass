@@ -25,9 +25,7 @@ if (flutterVersionName == null) {
     flutterVersionName = "1.0"
 }
 
-def keystorePropertiesFile = rootProject.file("key.properties")
-def keystoreProperties = new Properties()
-keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+// CI builds without signing secrets: use AGP's default debug keystore.
 
 android {
     namespace = "com.github.wgh136.venera"
@@ -57,21 +55,6 @@ android {
         jvmTarget = JavaVersion.VERSION_17
     }
 
-    signingConfigs {
-        debug {
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-        }
-        release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-        }
-    }
-
     defaultConfig {
         applicationId = "com.github.wgh136.venera"
         // You can update the following values to match your application needs.
@@ -89,7 +72,7 @@ android {
             ndk {
                 abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
             }
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug
         }
         debug {
             ndk {

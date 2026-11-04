@@ -1,5 +1,17 @@
 part of 'components.dart';
 
+// Pure design language - liquid glass bottom tab bar.
+// All colors, radii, spacing and motion values come from the global Pure spec.
+const Color _kPureAccent = Color(0xFF0071E3);
+const Color _kPureSecondaryText = Color(0xFF6E6E73);
+const Color _kPureDarkSecondaryText = Color(0xFF98989D);
+const Color _kPureGlassLight = Color(0xB8FFFFFF);
+const Color _kPureGlassDark = Color(0xB81C1C1E);
+const Color _kPureSeparatorLight = Color(0x1F3C3C43);
+const Color _kPureSeparatorDark = Color(0x7A545458);
+const Duration _kPureDuration = Duration(milliseconds: 250);
+const Cubic _kPureCurve = Cubic(0.25, 0.1, 0.25, 1);
+
 class PaneItemEntry {
   String label;
 
@@ -277,32 +289,74 @@ class NaviPaneState extends State<NaviPane>
   }
 
   Widget buildBottom() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final glassColor = isDark ? _kPureGlassDark : _kPureGlassLight;
+    final borderColor =
+        isDark ? _kPureSeparatorDark : _kPureSeparatorLight;
+    final count = widget.paneItems.length;
+
     return Material(
+      type: MaterialType.transparency,
       textStyle: Theme.of(context).textTheme.labelSmall,
-      elevation: 0,
-      child: Container(
-        height: _kBottomBarHeight,
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
-              width: 1,
+      child: Padding(
+        // 8pt grid: 16 / 8 / 12
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              height: _kBottomBarHeight,
+              decoration: BoxDecoration(
+                color: glassColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: borderColor, width: 1),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final itemWidth = constraints.maxWidth / count;
+                  const indicatorWidth = 56.0;
+                  return Stack(
+                    children: [
+                      AnimatedPositioned(
+                        duration: _kPureDuration,
+                        curve: _kPureCurve,
+                        left: itemWidth * currentPage +
+                            (itemWidth - indicatorWidth) / 2,
+                        top: 6,
+                        width: indicatorWidth,
+                        height: 32,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: _kPureAccent.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _kPureAccent.withOpacity(0.16),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: List<Widget>.generate(count, (index) {
+                          return Expanded(
+                            child: _SingleBottomNaviWidget(
+                              enabled: currentPage == index,
+                              entry: widget.paneItems[index],
+                              onTap: () {
+                                updatePage(index);
+                              },
+                              key: ValueKey(index),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
-        ),
-        child: Row(
-          children: List<Widget>.generate(widget.paneItems.length, (index) {
-            return Expanded(
-              child: _SingleBottomNaviWidget(
-                enabled: currentPage == index,
-                entry: widget.paneItems[index],
-                onTap: () {
-                  updatePage(index);
-                },
-                key: ValueKey(index),
-              ),
-            );
-          }),
         ),
       ),
     );
@@ -455,8 +509,6 @@ class _SingleBottomNaviWidgetState extends State<_SingleBottomNaviWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController controller;
 
-  bool isHovering = false;
-
   @override
   void dispose() {
     controller.dispose();
@@ -481,19 +533,17 @@ class _SingleBottomNaviWidgetState extends State<_SingleBottomNaviWidget>
     controller = AnimationController(
       value: widget.enabled ? 1 : 0,
       vsync: this,
-      duration: _fastAnimationDuration,
+      duration: _kPureDuration,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: CurvedAnimation(parent: controller, curve: Curves.ease),
+      animation: CurvedAnimation(parent: controller, curve: _kPureCurve),
       builder: (context, child) {
         return MouseRegion(
           cursor: SystemMouseCursors.click,
-          onEnter: (details) => setState(() => isHovering = true),
-          onExit: (details) => setState(() => isHovering = false),
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: widget.onTap,
@@ -506,31 +556,39 @@ class _SingleBottomNaviWidgetState extends State<_SingleBottomNaviWidget>
 
   Widget buildContent() {
     final value = controller.value;
-    final colorScheme = Theme.of(context).colorScheme;
-    final icon = Icon(
-      widget.enabled ? widget.entry.activeIcon : widget.entry.icon,
-    );
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactive =
+        isDark ? _kPureDarkSecondaryText : _kPureSecondaryText;
+    final color = Color.lerp(inactive, _kPureAccent, value)!;
     return Center(
-      child: Container(
-        width: 64,
-        height: 28,
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(32)),
-          color: isHovering ? colorScheme.surfaceContainer : Colors.transparent,
-        ),
-        child: Center(
-          child: Container(
-            width: 32 + value * 32,
-            height: 28,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.all(Radius.circular(32)),
-              color: value != 0
-                  ? colorScheme.secondaryContainer
-                  : Colors.transparent,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: Center(
+              child: Icon(
+                value >= 0.5 ? widget.entry.activeIcon : widget.entry.icon,
+                size: 24,
+                color: color,
+              ),
             ),
-            child: Center(child: icon),
           ),
-        ),
+          const SizedBox(height: 2),
+          Text(
+            widget.entry.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              height: 1.2,
+              fontWeight: FontWeight.w400,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -657,21 +715,47 @@ class _NaviMainViewState extends State<_NaviMainView> {
   @override
   Widget build(BuildContext context) {
     var shouldShowAppBar = state.controller.value < 2;
+    // Let page content extend behind the glass bar so the blur has real pixels
+    // to sample, while still reserving enough bottom inset for the last list item.
+    final bottomInset = MediaQuery.of(context).padding.bottom +
+        (shouldShowAppBar ? _kBottomBarHeight + 20 : 0);
     return Column(
       children: [
         if (shouldShowAppBar) state.buildTop().paddingTop(context.padding.top),
         Expanded(
-          child: MediaQuery.removePadding(
-            context: context,
-            removeTop: shouldShowAppBar,
-            child: AnimatedSwitcher(
-              duration: _fastAnimationDuration,
-              child: state.buildMainViewContent(),
-            ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    padding: MediaQuery.of(context)
+                        .padding
+                        .copyWith(bottom: bottomInset),
+                  ),
+                  child: Builder(
+                    builder: (innerContext) => MediaQuery.removePadding(
+                      context: innerContext,
+                      removeTop: shouldShowAppBar,
+                      child: AnimatedSwitcher(
+                        duration: _fastAnimationDuration,
+                        child: state.buildMainViewContent(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (shouldShowAppBar)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: state
+                      .buildBottom()
+                      .paddingBottom(context.padding.bottom),
+                ),
+            ],
           ),
         ),
-        if (shouldShowAppBar)
-          state.buildBottom().paddingBottom(context.padding.bottom),
       ],
     );
   }
