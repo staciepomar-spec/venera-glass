@@ -3,13 +3,14 @@ part of 'components.dart';
 // Pure design language - liquid glass bottom tab bar.
 // All colors, radii, spacing and motion values come from the global Pure spec.
 const Color _kPureAccent = Color(0xFF0071E3);
-const Color _kPureSecondaryText = Color(0xFF6E6E73);
-const Color _kPureDarkSecondaryText = Color(0xFF98989D);
+const Color _kPurePrimaryText = Color(0xFF1D1D1F);
+const Color _kPureDarkPrimaryText = Color(0xFFF5F5F7);
 const Color _kPureGlassLight = Color(0xB8FFFFFF);
 const Color _kPureGlassDark = Color(0xB81C1C1E);
 const Color _kPureSeparatorLight = Color(0x1F3C3C43);
 const Color _kPureSeparatorDark = Color(0x7A545458);
-const double _kPureBottomBarHeight = 58.0;
+const double _kPureBottomBarHeight = 64.0;
+const double _kPureBarRadius = 28.0;
 const Duration _kPureDuration = Duration(milliseconds: 250);
 const Cubic _kPureCurve = Cubic(0.25, 0.1, 0.25, 1);
 
@@ -302,59 +303,77 @@ class NaviPaneState extends State<NaviPane>
       child: Padding(
         // 8pt grid: 16 / 8 / 12
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              height: _kBottomBarHeight,
-              decoration: BoxDecoration(
-                color: glassColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: borderColor, width: 1),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(_kPureBarRadius),
+            // Pure shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 2,
+                offset: Offset(0, 1),
               ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final itemWidth = constraints.maxWidth / count;
-                  const indicatorWidth = 56.0;
-                  return Stack(
-                    children: [
-                      AnimatedPositioned(
-                        duration: _kPureDuration,
-                        curve: _kPureCurve,
-                        left: itemWidth * currentPage +
-                            (itemWidth - indicatorWidth) / 2,
-                        top: 6,
-                        width: indicatorWidth,
-                        height: 32,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _kPureAccent.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: _kPureAccent.withOpacity(0.16),
-                              width: 1,
+              BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 24,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(_kPureBarRadius),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                height: _kBottomBarHeight,
+                decoration: BoxDecoration(
+                  color: glassColor,
+                  borderRadius: BorderRadius.circular(_kPureBarRadius),
+                  border: Border.all(color: borderColor, width: 1),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final itemWidth = constraints.maxWidth / count;
+                    // Pill indicator wraps both icon and label.
+                    final indicatorWidth =
+                        (itemWidth - 12).clamp(56.0, 76.0);
+                    const indicatorHeight = 48.0;
+                    return Stack(
+                      children: [
+                        AnimatedPositioned(
+                          duration: _kPureDuration,
+                          curve: _kPureCurve,
+                          left: itemWidth * currentPage +
+                              (itemWidth - indicatorWidth) / 2,
+                          top: (_kBottomBarHeight - indicatorHeight) / 2,
+                          width: indicatorWidth,
+                          height: indicatorHeight,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _kPureAccent.withOpacity(0.12),
+                              borderRadius:
+                                  BorderRadius.circular(indicatorHeight / 2),
                             ),
                           ),
                         ),
-                      ),
-                      Row(
-                        children: List<Widget>.generate(count, (index) {
-                          return Expanded(
-                            child: _SingleBottomNaviWidget(
-                              enabled: currentPage == index,
-                              entry: widget.paneItems[index],
-                              onTap: () {
-                                updatePage(index);
-                              },
-                              key: ValueKey(index),
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  );
-                },
+                        Row(
+                          children: List<Widget>.generate(count, (index) {
+                            return Expanded(
+                              child: _SingleBottomNaviWidget(
+                                enabled: currentPage == index,
+                                entry: widget.paneItems[index],
+                                onTap: () {
+                                  updatePage(index);
+                                },
+                                key: ValueKey(index),
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -558,8 +577,7 @@ class _SingleBottomNaviWidgetState extends State<_SingleBottomNaviWidget>
   Widget buildContent() {
     final value = controller.value;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inactive =
-        isDark ? _kPureDarkSecondaryText : _kPureSecondaryText;
+    final inactive = isDark ? _kPureDarkPrimaryText : _kPurePrimaryText;
     final color = Color.lerp(inactive, _kPureAccent, value)!;
     return Center(
       child: Column(
@@ -567,17 +585,15 @@ class _SingleBottomNaviWidgetState extends State<_SingleBottomNaviWidget>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            width: 32,
-            height: 32,
-            child: Center(
-              child: Icon(
-                value >= 0.5 ? widget.entry.activeIcon : widget.entry.icon,
-                size: 24,
-                color: color,
-              ),
+            width: 24,
+            height: 24,
+            child: Icon(
+              widget.entry.activeIcon,
+              size: 24,
+              color: color,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             widget.entry.label,
             maxLines: 1,
@@ -585,7 +601,7 @@ class _SingleBottomNaviWidgetState extends State<_SingleBottomNaviWidget>
             style: TextStyle(
               fontSize: 10,
               height: 1.2,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w500,
               color: color,
             ),
           ),
